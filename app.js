@@ -28,10 +28,25 @@ var States = bookshelf.Model.extend({
 
 var Cities = bookshelf.Model.extend({
   tableName: 'cepbr_cidade',
-  state: function() {
-    return this.belongsTo(States, 'uf');
+  states: function() {
+    return this.belongsTo(States);
   }
 });
+
+var Districts = bookshelf.Model.extend({
+  tableName: 'cepbr_bairro',
+  city: function() {
+    return this.belongsTo(Cities);
+  }
+});
+
+var Addresses = bookshelf.Model.extend({
+  tableName: 'cepbr_endereco',
+  district: function() {
+    return this.belongsTo(Districts);
+  }
+});
+
 
 restify.CORS.ALLOW_HEADERS.push('authorization');
 server.pre(restify.CORS());
@@ -49,13 +64,33 @@ server.post('states', function (req, res, next) {
   })
 });
 
-server.post('citiesByState', function (req, res, next) {
+server.post('citiesbystate', function (req, res, next) {
   var params = req.params;
-  Cities.where({ uf: params.uf }).fetch({ withRelated: ['cepbr_estado'] }).then(function (cities) {
-    res.send(JSON.stringify( cities.related('cepbr_estado') ))
+  Cities.where({ uf: params.uf }).fetchAll().then(function (cities) {
+    res.send(cities.toJSON());
     return next();
   }).then(function (err) {
     return next(err)
+  });
+});
+
+server.post('districtsbycity', function (req, res, next) {
+  var params = req.params;
+  Districts.where({ id_cidade: params.cidade }).fetchAll().then(function (districts) {
+    res.send(districts.toJSON());
+    return next();
+  }).then(function (err) {
+    return next(err);
+  });
+});
+
+server.post('addressbyzipcode', function (req, res, next) {
+  var params = req.params;
+  Addresses.where({ cep: params.zipcode }).fetch().then(function (address) {
+    res.send(address.toJSON());
+    return next();
+  }).then(function (err) {
+    return next(err);
   });
 });
 
